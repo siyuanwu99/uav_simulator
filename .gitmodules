@@ -1,0 +1,3 @@
+[submodule "map_generator"]
+  path = map_generator
+  url = https://github.com/edmundwsy/dynamic_map_genetator.git
