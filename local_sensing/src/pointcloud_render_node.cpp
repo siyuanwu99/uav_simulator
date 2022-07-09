@@ -1,6 +1,7 @@
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/voxel_grid_occlusion_estimation.h>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -69,9 +70,10 @@ void rcvOdometryCallbck(const nav_msgs::Odometry& odom) {
   _odom    = odom;
 }
 
-pcl::PointCloud<pcl::PointXYZ> _cloud_all_map, _local_map;
-pcl::VoxelGrid<pcl::PointXYZ>  _voxel_sampler;
-sensor_msgs::PointCloud2       _local_map_pcd;
+pcl::PointCloud<pcl::PointXYZ>                   _cloud_all_map, _local_map, _visible_map;
+pcl::VoxelGrid<pcl::PointXYZ>                    _voxel_sampler;
+pcl::VoxelGridOcclusionEstimation<pcl::PointXYZ> _occlusion_estimator;
+sensor_msgs::PointCloud2                         _local_map_pcd;
 
 pcl::search::KdTree<pcl::PointXYZ> _kdtreeLocalMap;
 vector<int>                        _pointIdxRadiusSearch;
@@ -126,26 +128,40 @@ void renderSensedPoints(const ros::TimerEvent& event) {
 
       Vector3d pt_vec(pt.x - _odom.pose.pose.position.x, pt.y - _odom.pose.pose.position.y,
                       pt.z - _odom.pose.pose.position.z);
+
+      /* remove points that are not in the sensing horizon */
       if (pt_vec.normalized().dot(yaw_vec) < 0.5) continue;
 
       if (is_camera_frame) { /* if outputs point clouds in camera frame */
-        pcl::PointXYZ pt_camera_frame(-pt.y + _odom.pose.pose.position.y,
-                                      -pt.z + _odom.pose.pose.position.z,
-                                      pt.x - _odom.pose.pose.position.x);
+        pcl::PointXYZ pt_camera_frame(-pt_vec[1], -pt_vec[2], pt_vec[0]);
         _local_map.points.push_back(pt_camera_frame);
-      } else { /* output point clouds in global frame */
-        _local_map.points.push_back(pt);
+      } else { /* output point clouds in local frame */
+        pcl::PointXYZ pt_local(pt_vec[0], pt_vec[1], pt_vec[2]);
+        _local_map.points.push_back(pt_local);
       }
     }
   } else {
     return;
   }
 
-  _local_map.width    = _local_map.points.size();
-  _local_map.height   = 1;
-  _local_map.is_dense = true;
+  _visible_map.points.clear();
+  _occlusion_estimator.setLeafSize(0.1f, 0.1f, 0.1f);
+  _occlusion_estimator.setInputCloud(_local_map.makeShared());
+  _occlusion_estimator.initializeVoxelGrid();
+  for (size_t i = 0; i < _local_map.points.size(); i++) {
+    pcl::PointXYZ   pt      = _local_map.points[i];
+    Eigen::Vector3i grid_pt = _occlusion_estimator.getGridCoordinates(pt.x, pt.y, pt.z);
 
-  pcl::toROSMsg(_local_map, _local_map_pcd);
+    int occluded;
+    int res = _occlusion_estimator.occlusionEstimation(occluded, grid_pt);
+    if (occluded == 0) {
+      _visible_map.points.push_back(pt);
+    }
+  }
+  _visible_map.width    = _visible_map.points.size();
+  _visible_map.height   = 1;
+  _visible_map.is_dense = true;
+  pcl::toROSMsg(_visible_map, _local_map_pcd);
   _local_map_pcd.header.frame_id = "map";
 
   pub_cloud.publish(_local_map_pcd);

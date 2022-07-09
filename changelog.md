@@ -1,6 +1,6 @@
 ### July 9th, 2022
 - `fake_drone`: add odometry published as a `geometry_msgs/PoseStamped` message
-- `local_sensing`: add point cloud output in camera frame (to mimic depth camera)
+- `local_sensing`: add point cloud output in camera frame (to mimic depth camera); remove occluded points
 
 
 ## TODO
