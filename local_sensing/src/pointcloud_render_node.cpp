@@ -32,6 +32,7 @@ bool has_global_map(false);
 bool has_local_map(false);
 bool has_odom(false);
 bool is_camera_frame(false);
+bool is_dynamic_map(false);
 
 nav_msgs::Odometry _odom;
 
@@ -77,7 +78,7 @@ vector<int>                        _pointIdxRadiusSearch;
 vector<float>                      _pointRadiusSquaredDistance;
 
 void rcvGlobalPointCloudCallBack(const sensor_msgs::PointCloud2& pointcloud_map) {
-  if (has_global_map) return;
+  if (has_global_map && !is_dynamic_map) return;
 
   ROS_WARN("Global Pointcloud received..");
 
@@ -159,6 +160,7 @@ int main(int argc, char** argv) {
   ros::NodeHandle nh("~");
 
   nh.getParam("is_camera_frame", is_camera_frame);
+  nh.getParam("is_dynamic_map", is_dynamic_map);
   nh.getParam("sensing_horizon", sensing_horizon);
   nh.getParam("sensing_rate", sensing_rate);
   nh.getParam("estimation_rate", estimation_rate);
