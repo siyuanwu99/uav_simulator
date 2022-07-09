@@ -1,3 +1,4 @@
+#include <math.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
 #include <pcl/filters/voxel_grid.h>
@@ -37,6 +38,8 @@ bool is_dynamic_map(false);
 
 nav_msgs::Odometry _odom;
 
+double fov_width  = 43.5; /* default 43.5 degree, from realsense 435D */
+double fov_height = 29.0; /* default 29.0 degree, from realsense 435D */
 double sensing_horizon, sensing_rate, estimation_rate;
 double _x_size, _y_size, _z_size;
 double _gl_xl, _gl_yl, _gl_zl;
@@ -78,16 +81,17 @@ sensor_msgs::PointCloud2                         _local_map_pcd;
 pcl::search::KdTree<pcl::PointXYZ> _kdtreeLocalMap;
 vector<int>                        _pointIdxRadiusSearch;
 vector<float>                      _pointRadiusSquaredDistance;
+float                              _leaf_size = 0.1;
 
 void rcvGlobalPointCloudCallBack(const sensor_msgs::PointCloud2& pointcloud_map) {
   if (has_global_map && !is_dynamic_map) return;
 
-  ROS_WARN("Global Pointcloud received..");
+  ROS_INFO("Global Pointcloud received..");
 
   pcl::PointCloud<pcl::PointXYZ> cloud_input;
   pcl::fromROSMsg(pointcloud_map, cloud_input);
 
-  _voxel_sampler.setLeafSize(0.1f, 0.1f, 0.1f);
+  _voxel_sampler.setLeafSize(_leaf_size, _leaf_size, _leaf_size);
   _voxel_sampler.setInputCloud(cloud_input.makeShared());
   _voxel_sampler.filter(_cloud_all_map);
 
@@ -106,8 +110,10 @@ void renderSensedPoints(const ros::TimerEvent& event) {
   q.w() = _odom.pose.pose.orientation.w;
 
   Eigen::Matrix3d rot;
-  rot                     = q;
-  Eigen::Vector3d yaw_vec = rot.col(0);
+  rot                        = q;
+  Eigen::Vector3d body_x_vec = rot.col(0); /* head direction in world frame */
+  Eigen::Vector3d body_y_vec = rot.col(1);
+  Eigen::Vector3d body_z_vec = rot.col(2);
 
   _local_map.points.clear();
   pcl::PointXYZ searchPoint(_odom.pose.pose.position.x, _odom.pose.pose.position.y,
@@ -130,12 +136,18 @@ void renderSensedPoints(const ros::TimerEvent& event) {
                       pt.z - _odom.pose.pose.position.z);
 
       /* remove points that are not in the sensing horizon */
-      if (pt_vec.normalized().dot(yaw_vec) < 0.5) continue;
+      if (is_camera_frame) { /* if outputs point clouds in y-z-x camera frame */
+        Eigen::Vector3d pt_xy_proj = pt_vec - body_z_vec * (pt_vec.dot(body_z_vec));
+        double body_w_cos = pt_xy_proj.normalized().dot(body_x_vec);
+        Eigen::Vector3d pt_xz_proj = pt_vec - body_y_vec * (pt_vec.dot(body_y_vec));
+        double body_h_cos = pt_xz_proj.normalized().dot(body_x_vec);
+        if (body_w_cos > cos(M_PI / 180 * fov_width) && body_h_cos > cos(M_PI / 180 * fov_height)) {
+          pcl::PointXYZ pt_camera_frame(-pt_vec[1], -pt_vec[2], pt_vec[0]);
+          _local_map.points.push_back(pt_camera_frame);
+        }
 
-      if (is_camera_frame) { /* if outputs point clouds in camera frame */
-        pcl::PointXYZ pt_camera_frame(-pt_vec[1], -pt_vec[2], pt_vec[0]);
-        _local_map.points.push_back(pt_camera_frame);
       } else { /* output point clouds in local frame */
+        if (pt_vec.normalized().dot(body_x_vec) < 0.5) continue;
         pcl::PointXYZ pt_local(pt_vec[0], pt_vec[1], pt_vec[2]);
         _local_map.points.push_back(pt_local);
       }
@@ -145,7 +157,7 @@ void renderSensedPoints(const ros::TimerEvent& event) {
   }
 
   _visible_map.points.clear();
-  _occlusion_estimator.setLeafSize(0.1f, 0.1f, 0.1f);
+  _occlusion_estimator.setLeafSize(_leaf_size, _leaf_size, _leaf_size);
   _occlusion_estimator.setInputCloud(_local_map.makeShared());
   _occlusion_estimator.initializeVoxelGrid();
   for (size_t i = 0; i < _local_map.points.size(); i++) {
@@ -175,11 +187,14 @@ int main(int argc, char** argv) {
   ros::init(argc, argv, "pcl_render");
   ros::NodeHandle nh("~");
 
-  nh.getParam("is_camera_frame", is_camera_frame);
-  nh.getParam("is_dynamic_map", is_dynamic_map);
+  nh.getParam("is_camera_frame", is_camera_frame); /* output point clouds in y-z-x camera frame */
+  nh.getParam("is_dynamic_map", is_dynamic_map);   /* if the map is dynamic */
   nh.getParam("sensing_horizon", sensing_horizon);
   nh.getParam("sensing_rate", sensing_rate);
   nh.getParam("estimation_rate", estimation_rate);
+  nh.getParam("leaf_size", _leaf_size);
+  nh.getParam("fov_width", fov_width);
+  nh.getParam("fov_height", fov_height);
 
   nh.getParam("map/x_size", _x_size);
   nh.getParam("map/y_size", _y_size);

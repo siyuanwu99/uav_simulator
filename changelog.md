@@ -1,6 +1,9 @@
 ### July 9th, 2022
 - `fake_drone`: add odometry published as a `geometry_msgs/PoseStamped` message
-- `local_sensing`: add point cloud output in camera frame (to mimic depth camera); remove occluded points
+- `local_sensing`
+  - add point cloud output in camera frame (to mimic depth camera)
+  - refine FOV
+  - remove occluded points
 
 
 ## TODO
@@ -11,4 +14,3 @@
 - [ ] use the same local sensing node for multiple drones
 
 ## BUG
-- [ ] DSP map do not auto-clean
