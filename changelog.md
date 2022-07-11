@@ -14,3 +14,4 @@
 - [ ] use the same local sensing node for multiple drones
 
 ## BUG
+- Current framework relies on `poscmd_2_odom` which directly converts position command to odometry and yields quadrotor's SO3 dynamics. Future adjustment should focus on this. 
