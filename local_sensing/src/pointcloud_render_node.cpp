@@ -1,4 +1,4 @@
-#include <math.h>
+  #include <math.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
 #include <pcl/filters/voxel_grid.h>
@@ -137,6 +137,7 @@ void renderSensedPoints(const ros::TimerEvent& event) {
 
       /* remove points that are not in the sensing horizon */
       if (is_camera_frame) { /* if outputs point clouds in y-z-x camera frame */
+        pt_vec = rot.transpose() * pt_vec; /* rotate the point cloud to body frame */
         Eigen::Vector3d pt_xy_proj = pt_vec - body_z_vec * (pt_vec.dot(body_z_vec));
         double body_w_cos = pt_xy_proj.normalized().dot(body_x_vec);
         Eigen::Vector3d pt_xz_proj = pt_vec - body_y_vec * (pt_vec.dot(body_y_vec));
