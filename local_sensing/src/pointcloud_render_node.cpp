@@ -38,8 +38,8 @@ bool is_dynamic_map(false);
 
 nav_msgs::Odometry _odom;
 
-double fov_width  = 43.5; /* default 43.5 degree, from realsense 435D */
-double fov_height = 29.0; /* default 29.0 degree, from realsense 435D */
+double fov_width  = 40; /* default 43.5 degree, from realsense 435D */
+double fov_height = 28; /* default 29.0 degree, from realsense 435D */
 double sensing_horizon, sensing_rate, estimation_rate;
 double _x_size, _y_size, _z_size;
 double _gl_xl, _gl_yl, _gl_zl;
@@ -127,29 +127,30 @@ void renderSensedPoints(const ros::TimerEvent& event) {
     for (size_t i = 0; i < _pointIdxRadiusSearch.size(); ++i) {
       pt = _cloud_all_map.points[_pointIdxRadiusSearch[i]];
 
-      // if ((fabs(pt.z - _odom.pose.pose.position.z) / (pt.x - _odom.pose.pose.position.x)) >
-      //     tan(M_PI / 12.0))
-      //   continue;
       if ((fabs(pt.z - _odom.pose.pose.position.z) / sensing_horizon) > tan(M_PI / 6.0)) continue;
 
-      Vector3d pt_vec(pt.x - _odom.pose.pose.position.x, pt.y - _odom.pose.pose.position.y,
+      /* point in the world frame */
+      Vector3d pt_world(pt.x - _odom.pose.pose.position.x, pt.y - _odom.pose.pose.position.y,
                       pt.z - _odom.pose.pose.position.z);
+      Vector3d pt_body = rot.transpose() * pt_world; /* rotate the point cloud to body frame */
 
       /* remove points that are not in the sensing horizon */
+      if (fabs(pt_body(2)) / sensing_horizon > tan(M_PI / 6.0)) continue;
+
+      double x = pt_body(0);
+      double y = pt_body(1);
+      double z = pt_body(2);
+      
+      double body_w_cos = fabs(x) / sqrt(x * x + y * y);
+      double body_h_cos = fabs(x) / sqrt(x * x + z * z);
+
       if (is_camera_frame) { /* if outputs point clouds in y-z-x camera frame */
-        pt_vec = rot.transpose() * pt_vec; /* rotate the point cloud to body frame */
-        Eigen::Vector3d pt_xy_proj = pt_vec - body_z_vec * (pt_vec.dot(body_z_vec));
-        double body_w_cos = pt_xy_proj.normalized().dot(body_x_vec);
-        Eigen::Vector3d pt_xz_proj = pt_vec - body_y_vec * (pt_vec.dot(body_y_vec));
-        double body_h_cos = pt_xz_proj.normalized().dot(body_x_vec);
         if (body_w_cos > cos(M_PI / 180 * fov_width) && body_h_cos > cos(M_PI / 180 * fov_height)) {
-          pcl::PointXYZ pt_camera_frame(-pt_vec[1], -pt_vec[2], pt_vec[0]);
+          pcl::PointXYZ pt_camera_frame(-pt_body[1], -pt_body[2], pt_body[0]);
           _local_map.points.push_back(pt_camera_frame);
         }
-
       } else { /* output point clouds in local frame */
-        if (pt_vec.normalized().dot(body_x_vec) < 0.5) continue;
-        pcl::PointXYZ pt_local(pt_vec[0], pt_vec[1], pt_vec[2]);
+        pcl::PointXYZ pt_local(pt_world[0], pt_world[1], pt_world[2]);
         _local_map.points.push_back(pt_local);
       }
     }
@@ -175,7 +176,7 @@ void renderSensedPoints(const ros::TimerEvent& event) {
   _visible_map.height   = 1;
   _visible_map.is_dense = true;
   pcl::toROSMsg(_visible_map, _local_map_pcd);
-  _local_map_pcd.header.frame_id = "map";
+  _local_map_pcd.header.frame_id = "world";
 
   pub_cloud.publish(_local_map_pcd);
 }
