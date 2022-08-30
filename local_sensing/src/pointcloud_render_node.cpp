@@ -141,8 +141,8 @@ void renderSensedPoints(const ros::TimerEvent& event) {
       double y = pt_body(1);
       double z = pt_body(2);
       
-      double body_w_cos = fabs(x) / sqrt(x * x + y * y);
-      double body_h_cos = fabs(x) / sqrt(x * x + z * z);
+      double body_w_cos = x / sqrt(x * x + y * y);
+      double body_h_cos = x / sqrt(x * x + z * z);
 
       if (is_camera_frame) { /* if outputs point clouds in y-z-x camera frame */
         if (body_w_cos > cos(M_PI / 180 * fov_width) && body_h_cos > cos(M_PI / 180 * fov_height)) {
