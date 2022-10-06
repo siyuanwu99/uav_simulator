@@ -177,6 +177,7 @@ void renderSensedPoints(const ros::TimerEvent& event) {
   _visible_map.is_dense = true;
   pcl::toROSMsg(_visible_map, _local_map_pcd);
   _local_map_pcd.header.frame_id = "world";
+  _local_map_pcd.header.stamp = ros::Time::now();
 
   pub_cloud.publish(_local_map_pcd);
 }
