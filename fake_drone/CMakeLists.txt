@@ -27,3 +27,8 @@ include_directories(
 add_executable (poscmd_2_odom src/poscmd_2_odom.cpp )
 target_link_libraries(poscmd_2_odom
   ${catkin_LIBRARIES})
+
+
+add_executable (drone_teleop_key src/fake_joystick.cpp )
+target_link_libraries(drone_teleop_key
+  ${catkin_LIBRARIES})
