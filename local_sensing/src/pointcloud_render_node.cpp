@@ -38,8 +38,8 @@ bool is_dynamic_map(false);
 
 nav_msgs::Odometry _odom;
 
-double fov_width  = 40; /* default 43.5 degree, from realsense 435D */
-double fov_height = 28; /* default 29.0 degree, from realsense 435D */
+double fov_width  = 43.5; /* default 43.5 degree, from realsense 435D */
+double fov_height = 29.0; /* default 29.0 degree, from realsense 435D */
 double sensing_horizon, sensing_rate, estimation_rate;
 double _x_size, _y_size, _z_size;
 double _gl_xl, _gl_yl, _gl_zl;
