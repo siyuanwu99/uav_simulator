@@ -101,14 +101,14 @@ SO3ControlNodelet::position_cmd_callback(
   des_acc_ = Eigen::Vector3d(cmd->acceleration.x, cmd->acceleration.y,
                              cmd->acceleration.z);
 
-  if ( cmd->kx[0] > 1e-5 || cmd->kx[1] > 1e-5 || cmd->kx[2] > 1e-5 )
-  {
-    kx_ = Eigen::Vector3d(cmd->kx[0], cmd->kx[1], cmd->kx[2]);
-  }
-  if ( cmd->kv[0] > 1e-5 || cmd->kv[1] > 1e-5 || cmd->kv[2] > 1e-5 )
-  {
-    kv_ = Eigen::Vector3d(cmd->kv[0], cmd->kv[1], cmd->kv[2]);
-  }
+  /* if ( cmd->kx[0] > 1e-5 || cmd->kx[1] > 1e-5 || cmd->kx[2] > 1e-5 ) */
+  /* { */
+  /*   kx_ = Eigen::Vector3d(cmd->kx[0], cmd->kx[1], cmd->kx[2]); */
+  /* } */
+  /* if ( cmd->kv[0] > 1e-5 || cmd->kv[1] > 1e-5 || cmd->kv[2] > 1e-5 ) */
+  /* { */
+  /*   kv_ = Eigen::Vector3d(cmd->kv[0], cmd->kv[1], cmd->kv[2]); */
+  /* } */
 
   des_yaw_              = cmd->yaw;
   des_yaw_dot_          = cmd->yaw_dot;
