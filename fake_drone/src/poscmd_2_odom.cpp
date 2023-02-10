@@ -15,6 +15,7 @@ ros::Publisher  _pose_pub;
 
 quadrotor_msgs::PositionCommand _cmd;
 double                          _init_x, _init_y, _init_z;
+double                          _init_qx, _init_qy, _init_qz, _init_qw;
 
 bool rcv_cmd = false;
 void rcvPosCmdCallBack(const quadrotor_msgs::PositionCommand cmd) {
@@ -78,10 +79,10 @@ void pubOdom() {
     odom.pose.pose.position.y = _init_y;
     odom.pose.pose.position.z = _init_z;
 
-    odom.pose.pose.orientation.w = 1;
-    odom.pose.pose.orientation.x = 0;
-    odom.pose.pose.orientation.y = 0;
-    odom.pose.pose.orientation.z = 0;
+    odom.pose.pose.orientation.w = _init_qw;
+    odom.pose.pose.orientation.x = _init_qx;
+    odom.pose.pose.orientation.y = _init_qy;
+    odom.pose.pose.orientation.z = _init_qz;
 
     odom.twist.twist.linear.x = 0.0;
     odom.twist.twist.linear.y = 0.0;
@@ -112,6 +113,14 @@ int main(int argc, char** argv) {
   nh.param("init_x", _init_x, 0.0);
   nh.param("init_y", _init_y, 0.0);
   nh.param("init_z", _init_z, 0.0);
+  nh.param("init_qx", _init_qx, 0.0);
+  nh.param("init_qy", _init_qy, 0.0);
+  nh.param("init_qz", _init_qz, 0.0);
+  nh.param("init_qw", _init_qw, 1.0);
+  _init_qw = (_init_qw > 1.0) ? 1.0 : _init_qw;
+  _init_qx = (_init_qx > 1.0) ? 1.0 : _init_qx;
+  _init_qy = (_init_qy > 1.0) ? 1.0 : _init_qy;
+  _init_qz = (_init_qz > 1.0) ? 1.0 : _init_qz;
 
   _cmd_sub  = nh.subscribe("command", 1, rcvPosCmdCallBack);
   _odom_pub = nh.advertise<nav_msgs::Odometry>("odometry", 1);
