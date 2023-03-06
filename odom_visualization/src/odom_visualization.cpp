@@ -18,6 +18,7 @@ using namespace std;
 static string mesh_resource;
 static double color_r, color_g, color_b, color_a, cov_scale, scale;
 
+int    drone_id     = 0;
 bool   cross_config = false;
 bool   tf45         = false;
 bool   cov_pos      = false;
@@ -407,6 +408,9 @@ void cmd_callback(const quadrotor_msgs::PositionCommand cmd) {
   meshROS.pose.position.x = cmd.position.x;
   meshROS.pose.position.y = cmd.position.y;
   meshROS.pose.position.z = cmd.position.z;
+  meshROS.scale.x         = 0.3;
+  meshROS.scale.y         = 0.3;
+  meshROS.scale.z         = 0.3;
 
   if (cross_config) {
     colvec ypr = R_to_ypr(quaternion_to_R(q));
