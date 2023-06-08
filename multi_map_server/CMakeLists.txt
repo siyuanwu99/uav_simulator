@@ -134,8 +134,8 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES irobot_msgs
+   INCLUDE_DIRS include
+   LIBRARIES multi_map_server
    CATKIN_DEPENDS geometry_msgs nav_msgs quadrotor_msgs
 #  DEPENDS system_lib
 )
@@ -152,6 +152,15 @@ include_directories(${ARMADILLO_INCLUDE_DIRS})
 include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
+)
+
+add_library(multi_map_server 
+    src/multi_map_visualization.cc
+)
+target_link_libraries(multi_map_server
+   ${catkin_LIBRARIES}
+   ${ARMADILLO_LIBRARIES}
+   ${pose_utils_LIBRARIES}
 )
 
 ## Declare a cpp library

@@ -18,6 +18,7 @@ using namespace std;
 static string mesh_resource;
 static double color_r, color_g, color_b, color_a, cov_scale, scale;
 
+int    drone_id     = 0;
 bool   cross_config = false;
 bool   tf45         = false;
 bool   cov_pos      = false;
