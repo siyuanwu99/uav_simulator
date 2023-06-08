@@ -96,10 +96,10 @@ void pubOdom() {
     pose.pose.position.x    = _init_x;
     pose.pose.position.y    = _init_y;
     pose.pose.position.z    = _init_z;
-    pose.pose.orientation.w = 1;
-    pose.pose.orientation.x = 0;
-    pose.pose.orientation.y = 0;
-    pose.pose.orientation.z = 0;
+    pose.pose.orientation.w = _init_qw;
+    pose.pose.orientation.x = _init_qx;
+    pose.pose.orientation.y = _init_qy;
+    pose.pose.orientation.z = _init_qz;
   }
 
   _odom_pub.publish(odom);
