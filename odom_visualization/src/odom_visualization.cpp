@@ -407,6 +407,9 @@ void cmd_callback(const quadrotor_msgs::PositionCommand cmd) {
   meshROS.pose.position.x = cmd.position.x;
   meshROS.pose.position.y = cmd.position.y;
   meshROS.pose.position.z = cmd.position.z;
+  meshROS.scale.x         = 0.3;
+  meshROS.scale.y         = 0.3;
+  meshROS.scale.z         = 0.3;
 
   if (cross_config) {
     colvec ypr = R_to_ypr(quaternion_to_R(q));

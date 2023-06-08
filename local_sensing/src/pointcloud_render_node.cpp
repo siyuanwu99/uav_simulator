@@ -1,4 +1,4 @@
-  #include <math.h>
+#include <math.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
 #include <pcl/filters/voxel_grid.h>
@@ -131,7 +131,7 @@ void renderSensedPoints(const ros::TimerEvent& event) {
 
       /* point in the world frame */
       Vector3d pt_world(pt.x - _odom.pose.pose.position.x, pt.y - _odom.pose.pose.position.y,
-                      pt.z - _odom.pose.pose.position.z);
+                        pt.z - _odom.pose.pose.position.z);
       Vector3d pt_body = rot.transpose() * pt_world; /* rotate the point cloud to body frame */
 
       /* remove points that are not in the sensing horizon */
@@ -140,18 +140,18 @@ void renderSensedPoints(const ros::TimerEvent& event) {
       double x = pt_body(0);
       double y = pt_body(1);
       double z = pt_body(2);
-      
+
       double body_w_cos = x / sqrt(x * x + y * y);
       double body_h_cos = x / sqrt(x * x + z * z);
 
-      if (is_camera_frame) { /* if outputs point clouds in y-z-x camera frame */
-        if (body_w_cos > cos(M_PI / 180 * fov_width) && body_h_cos > cos(M_PI / 180 * fov_height)) {
+      if (body_w_cos > cos(M_PI / 180 * fov_width) && body_h_cos > cos(M_PI / 180 * fov_height)) {
+        if (is_camera_frame) { /* if outputs point clouds in y-z-x camera frame */
           pcl::PointXYZ pt_camera_frame(-pt_body[1], -pt_body[2], pt_body[0]);
           _local_map.points.push_back(pt_camera_frame);
+        } else { /* output point clouds in local frame */
+          pcl::PointXYZ pt_local(pt_world[0], pt_world[1], pt_world[2]);
+          _local_map.points.push_back(pt_local);
         }
-      } else { /* output point clouds in local frame */
-        pcl::PointXYZ pt_local(pt_world[0], pt_world[1], pt_world[2]);
-        _local_map.points.push_back(pt_local);
       }
     }
   } else {
@@ -177,7 +177,7 @@ void renderSensedPoints(const ros::TimerEvent& event) {
   _visible_map.is_dense = true;
   pcl::toROSMsg(_visible_map, _local_map_pcd);
   _local_map_pcd.header.frame_id = "world";
-  _local_map_pcd.header.stamp = ros::Time::now();
+  _local_map_pcd.header.stamp    = ros::Time::now();
 
   pub_cloud.publish(_local_map_pcd);
 }
