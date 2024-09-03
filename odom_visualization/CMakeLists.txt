@@ -1,4 +1,4 @@
-#cmake_minimum_required(VERSION 2.4.6)
+
 #include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 
 # Set the build type.  Options are:
@@ -94,7 +94,7 @@ find_package(catkin REQUIRED COMPONENTS
 #   MultiSparseMap3D.msg
 #   SparseMap3D.msg
 #   VerticalOccupancyGridList.msg
-   #plan_cmd.msg
+#plan_cmd.msg
 #)
 
 ## Generate services in the 'srv' folder
@@ -155,6 +155,7 @@ include_directories(
 
 ## Declare a cpp executable
 add_executable(odom_visualization src/odom_visualization.cpp)
+add_executable(simple_odom_visualization src/simple.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -162,6 +163,11 @@ add_executable(odom_visualization src/odom_visualization.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(odom_visualization
+   ${catkin_LIBRARIES}
+   ${ARMADILLO_LIBRARIES}
+   ${pose_utils_LIBRARIES}
+)
+target_link_libraries(simple_odom_visualization
    ${catkin_LIBRARIES}
    ${ARMADILLO_LIBRARIES}
    ${pose_utils_LIBRARIES}

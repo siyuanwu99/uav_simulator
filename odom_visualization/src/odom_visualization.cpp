@@ -1,3 +1,4 @@
+#include <visualization_msgs/MarkerArray.h>
 #include <iostream>
 #include <string>
 #include "armadillo"
@@ -44,13 +45,52 @@ nav_msgs::Path             pathROS;
 visualization_msgs::Marker velROS;
 visualization_msgs::Marker covROS;
 visualization_msgs::Marker covVelROS;
-visualization_msgs::Marker trajROS;
 visualization_msgs::Marker sensorROS;
 visualization_msgs::Marker meshROS;
 sensor_msgs::Range         heightROS;
 
+visualization_msgs::MarkerArray trajROS;
+
 std::string _frame_id;
 int         _drone_id;
+
+/*
+ * @brief get color from jet colormap
+ *
+ * @param v current value
+ * @param vmin min value
+ * @param vmax max value
+ * @return std_msgs::ColorRGBA
+ */
+std_msgs::ColorRGBA getColorJet(double v, double vmin, double vmax) {
+  std_msgs::ColorRGBA c;
+  c.r = 1;
+  c.g = 1;
+  c.b = 1;
+  c.a = 1;
+  // white
+  double dv;
+
+  if (v < vmin) v = vmin;
+  if (v > vmax) v = vmax;
+  dv = vmax - vmin;
+
+  if (v < (vmin + 0.25 * dv)) {
+    c.r = 0;
+    c.g = 4 * (v - vmin) / dv;
+  } else if (v < (vmin + 0.5 * dv)) {
+    c.r = 0;
+    c.b = 1 + 4 * (vmin + 0.25 * dv - v) / dv;
+  } else if (v < (vmin + 0.75 * dv)) {
+    c.r = 4 * (v - vmin - 0.5 * dv) / dv;
+    c.b = 0;
+  } else {
+    c.g = 1 + 4 * (vmin + 0.75 * dv - v) / dv;
+    c.b = 0;
+  }
+
+  return (c);
+}
 
 void odom_callback(const nav_msgs::Odometry::ConstPtr& msg) {
   if (msg->header.frame_id == string("null")) return;
@@ -233,48 +273,44 @@ void odom_callback(const nav_msgs::Odometry::ConstPtr& msg) {
   }
 
   // Color Coded Trajectory
-  static colvec    ppose = pose;
-  static ros::Time pt    = msg->header.stamp;
-  ros::Time        t     = msg->header.stamp;
-  if ((t - pt).toSec() > 0.5) {
-    trajROS.header.frame_id    = string("world");
-    trajROS.header.stamp       = ros::Time::now();
-    trajROS.ns                 = string("trajectory");
-    trajROS.type               = visualization_msgs::Marker::LINE_LIST;
-    trajROS.action             = visualization_msgs::Marker::ADD;
-    trajROS.pose.position.x    = 0;
-    trajROS.pose.position.y    = 0;
-    trajROS.pose.position.z    = 0;
-    trajROS.pose.orientation.w = 1;
-    trajROS.pose.orientation.x = 0;
-    trajROS.pose.orientation.y = 0;
-    trajROS.pose.orientation.z = 0;
-    trajROS.scale.x            = 0.1;
-    trajROS.scale.y            = 0;
-    trajROS.scale.z            = 0;
-    trajROS.color.r            = 0.0;
-    trajROS.color.g            = 1.0;
-    trajROS.color.b            = 0.0;
-    trajROS.color.a            = 0.8;
-    geometry_msgs::Point p;
-    p.x = ppose(0);
-    p.y = ppose(1);
-    p.z = ppose(2);
-    trajROS.points.push_back(p);
-    p.x = pose(0);
-    p.y = pose(1);
-    p.z = pose(2);
-    trajROS.points.push_back(p);
-    std_msgs::ColorRGBA color;
-    color.r = r;
-    color.g = g;
-    color.b = b;
-    color.a = 1;
-    trajROS.colors.push_back(color);
-    trajROS.colors.push_back(color);
-    ppose = pose;
-    pt    = t;
+  static colvec    ppose   = pose;
+  static ros::Time pt      = msg->header.stamp;
+  static int       traj_id = 0;
+  ros::Time        t       = msg->header.stamp;
+
+  visualization_msgs::Marker traj_marker;
+  traj_marker.type            = visualization_msgs::Marker::ARROW;
+  traj_marker.action          = visualization_msgs::Marker::ADD;
+  traj_marker.header.frame_id = string("world");
+  traj_marker.header.stamp    = ros::Time::now();
+  traj_marker.ns              = ros::this_node::getNamespace();
+  traj_marker.id              = traj_id;
+
+  double vnorm                   = norm(vel, 2);
+  traj_marker.color              = getColorJet(vnorm, 0, 2.5);
+  traj_marker.scale.x            = 0.1;
+  traj_marker.scale.y            = 0.00001;
+  traj_marker.scale.z            = 0.00001;
+  traj_marker.pose.orientation.w = 1;
+
+  geometry_msgs::Point p;
+  p.x = ppose(0);
+  p.y = ppose(1);
+  p.z = ppose(2);
+  traj_marker.points.push_back(p);
+  p.x = pose(0);
+  p.y = pose(1);
+  p.z = pose(2);
+  traj_marker.points.push_back(p);
+  std_msgs::ColorRGBA color;
+  ppose = pose;
+  traj_id++;
+
+  trajROS.markers.push_back(traj_marker);
+  if (t - pt > ros::Duration(0.1)) {
+    pt = t;
     trajPub.publish(trajROS);
+    trajROS.markers.clear();
   }
 
   // Sensor availability
@@ -461,7 +497,7 @@ int main(int argc, char** argv) {
   velPub                   = n.advertise<visualization_msgs::Marker>("velocity", 100, true);
   covPub                   = n.advertise<visualization_msgs::Marker>("covariance", 100, true);
   covVelPub = n.advertise<visualization_msgs::Marker>("covariance_velocity", 100, true);
-  trajPub   = n.advertise<visualization_msgs::Marker>("trajectory", 100, true);
+  trajPub   = n.advertise<visualization_msgs::MarkerArray>("trajectory", 100, true);
   sensorPub = n.advertise<visualization_msgs::Marker>("sensor", 100, true);
   meshPub   = n.advertise<visualization_msgs::Marker>("robot", 100, true);
   heightPub = n.advertise<sensor_msgs::Range>("height", 100, true);
